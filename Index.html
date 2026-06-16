@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 Bảng Điều Khiển Nhạc Sự Kiện</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --card-idle: #1e2a45;
+    --card-playing: #0a3d2e;
+    --card-paused: #3d2e0a;
+    --accent: #e94560;
+    --green: #00d68f;
+    --yellow: #ffb800;
+    --text: #eaeaea;
+    --muted: #8892a4;
+    --border: #2a3a5c;
+    --btn-h: 44px;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 12px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+
+  .header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: #fff;
+  }
+  .header-title span { color: var(--accent); }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .master-vol {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .82rem;
+    color: var(--muted);
+  }
+  .master-vol input[type=range] { width: 110px; }
+
+  .btn {
+    height: var(--btn-h);
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn:hover { filter: brightness(1.15); }
+
+  .btn-danger  { background: var(--accent); color: #fff; }
+  .btn-neutral { background: var(--border); color: var(--text); }
+  .btn-add     { background: #2255aa; color: #fff; }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card-idle);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: background .25s, border-color .25s;
+    position: relative;
+  }
+  .card.playing {
+    background: var(--card-playing);
+    border-color: var(--green);
+  }
+  .card.paused {
+    background: var(--card-paused);
+    border-color: var(--yellow);
+  }
+
+  /* status badge */
+  .card-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .card.playing  .card-status { background: var(--green); color: #000; }
+  .card.paused   .card-status { background: var(--yellow); color: #000; }
+  .card:not(.playing):not(.paused) .card-status { background: var(--border); color: var(--muted); }
+
+  /* card header row */
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 56px; /* room for badge */
+  }
+  .slot-num {
+    font-size: .72rem;
+    font-weight: 700;
+    background: var(--border);
+    color: var(--muted);
+    border-radius: 5px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+  .card-name {
+    font-size: .9rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--border);
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    padding: 2px 4px;
+    outline: none;
+  }
+  .card-name:focus { border-bottom-color: var(--accent); }
+
+  /* file row */
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .btn-file {
+    flex-shrink: 0;
+    min-width: fit-content;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: .8rem;
+    font-weight: 600;
+    background: #2255aa;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-file:hover { filter: brightness(1.2); }
+  .file-name {
+    font-size: .75rem;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  input[type=file] { display: none; }
+
+  /* transport buttons */
+  .transport {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-play  { background: var(--green);  color: #000; flex: 1; font-size: 1rem; }
+  .btn-pause { background: var(--yellow); color: #000; flex: 1; font-size: 1rem; }
+  .btn-stop  { background: #cc3355; color: #fff; flex: 1; font-size: 1rem; }
+  .transport .btn {
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  /* seek / volume */
+  .seek-row, .vol-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .72rem;
+    color: var(--muted);
+  }
+  .seek-row input[type=range],
+  .vol-row  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 4px;
+  }
+  .time-display { min-width: 80px; text-align: right; font-size: .72rem; color: var(--muted); }
+
+  .vol-icon { font-size: .9rem; }
+
+  /* loop toggle */
+  .loop-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .78rem;
+    color: var(--muted);
+  }
+  .loop-row label { cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none; }
+  .loop-row input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .loop-row span { font-size: .75rem; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+  }
+
+  .bottom-bar h3 {
+    font-size: .88rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #history-list {
+    list-style: none;
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #history-list li {
+    font-size: .78rem;
+    color: var(--muted);
+    padding: 4px 8px;
+    background: var(--card-idle);
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #history-list li .h-name { color: var(--text); }
+  #history-list li .h-time { flex-shrink: 0; }
+  #history-list:empty::after {
+    content: 'Chưa có lịch sử phát nhạc.';
+    font-size: .78rem;
+    color: var(--border);
+    padding: 4px 8px;
+    display: block;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── RANGE STYLING ── */
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 3px;
+    height: 5px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3,1fr); } }
+  @media (max-width: 780px)  { .grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 480px)  { .grid { grid-template-columns: 1fr; } }
+
+  .shortcut-hint {
+    font-size: .68rem;
+    color: var(--border);
+    text-align: right;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-title">🎵 <span>Bảng Điều Khiển</span> Nhạc Sự Kiện</div>
+  <div class="header-controls">
+    <div class="master-vol">
+      🔊 Master
+      <input type="range" id="masterVol" min="0" max="1" step="0.01" value="1">
+      <span id="masterVolDisplay">100%</span>
+    </div>
+    <button class="btn btn-danger" onclick="stopAll()">⏹ Dừng Tất Cả</button>
+    <button class="btn btn-add" onclick="addCard()">＋ Thêm Ô</button>
+  </div>
+</header>
+
+<!-- GRID -->
+<div class="grid" id="grid"></div>
+
+<!-- HISTORY -->
+<div class="bottom-bar">
+  <h3>
+    📋 Lịch sử phát nhạc
+    <button class="btn btn-neutral" style="height:30px;padding:0 12px;font-size:.78rem;" onclick="clearHistory()">Xóa lịch sử</button>
+  </h3>
+  <ul id="history-list"></ul>
+</div>
+
+<script>
+// ── STATE ──
+let masterVolume = 1;
+let cardCount = 0;
+const cards = {};      // id → { audio, name, fileName }
+const HISTORY_KEY = 'event_music_history';
+
+// ── MASTER VOLUME ──
+const masterInput = document.getElementById('masterVol');
+const masterDisplay = document.getElementById('masterVolDisplay');
+masterInput.addEventListener('input', () => {
+  masterVolume = parseFloat(masterInput.value);
+  masterDisplay.textContent = Math.round(masterVolume * 100) + '%';
+  Object.values(cards).forEach(c => {
+    if (c.audio) c.audio.volume = c.localVol * masterVolume;
+  });
+});
+
+// ── CREATE CARD ──
+function addCard() {
+  cardCount++;
+  const id = cardCount;
+  cards[id] = { audio: null, localVol: 0.8, fileName: null };
+
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.id = `card-${id}`;
+  div.innerHTML = `
+    <div class="card-header">
+      <span class="slot-num">${id}</span>
+      <input class="card-name" type="text" value="Ô Nhạc ${id}" title="Nhấn để đổi tên" />
+    </div>
+    <span class="card-status">Trống</span>
+
+    <div class="file-row">
+      <button class="btn-file" onclick="chooseFile(${id})">📂 Chọn File</button>
+      <span class="file-name" id="fname-${id}">Chưa chọn file</span>
+      <input type="file" id="file-${id}" accept="audio/*" onchange="loadFile(${id})">
+    </div>
+
+    <div class="transport">
+      <button class="btn btn-play"  onclick="playCard(${id})"  title="Phát [phím ${id}]">▶</button>
+      <button class="btn btn-pause" onclick="pauseCard(${id})" title="Tạm dừng">⏸</button>
+      <button class="btn btn-stop"  onclick="stopCard(${id})"  title="Dừng">⏹</button>
+    </div>
+
+    <div class="seek-row">
+      ⏱
+      <input type="range" id="seek-${id}" min="0" max="100" step="0.1" value="0"
+             oninput="seeking(${id})" onchange="seekTo(${id})">
+      <span class="time-display" id="time-${id}">0:00 / 0:00</span>
+    </div>
+
+    <div class="vol-row">
+      <span class="vol-icon">🔉</span>
+      <input type="range" id="vol-${id}" min="0" max="1" step="0.01" value="0.8"
+             oninput="setVol(${id})">
+      <span id="vdisp-${id}">80%</span>
+    </div>
+
+    <div class="loop-row">
+      <label>
+        <input type="checkbox" id="loop-${id}" onchange="setLoop(${id})">
+        <span>🔁 Lặp lại</span>
+      </label>
+    </div>
+    <div class="shortcut-hint">Phím tắt: ${id <= 9 ? id : '—'}</div>
+  `;
+  document.getElementById('grid').appendChild(div);
+}
+
+// ── LOAD FILE ──
+function chooseFile(id) {
+  document.getElementById(`file-${id}`).click();
+}
+
+function loadFile(id) {
+  const file = document.getElementById(`file-${id}`).files[0];
+  if (!file) return;
+
+  // cleanup old audio
+  if (cards[id].audio) {
+    cards[id].audio.pause();
+    cards[id].audio.src = '';
+  }
+
+  const url = URL.createObjectURL(file);
+  const audio = new Audio(url);
+  cards[id].audio = audio;
+  cards[id].fileName = file.name;
+
+  document.getElementById(`fname-${id}`).textContent = file.name;
+
+  const vol = cards[id].localVol;
+  audio.volume = vol * masterVolume;
+
+  // loop
+  audio.loop = document.getElementById(`loop-${id}`).checked;
+
+  // time update
+  audio.addEventListener('timeupdate', () => updateSeek(id));
+  audio.addEventListener('ended', () => {
+    if (!audio.loop) {
+      setCardState(id, 'idle');
+      logHistory(id);
+    }
+  });
+  audio.addEventListener('loadedmetadata', () => updateSeek(id));
+
+  setCardState(id, 'idle');
+}
+
+// ── TRANSPORT ──
+function playCard(id) {
+  const c = cards[id];
+  if (!c.audio) { alert('Hãy chọn file nhạc trước!'); return; }
+  c.audio.play();
+  setCardState(id, 'playing');
+  logHistory(id, 'start');
+}
+
+function pauseCard(id) {
+  const c = cards[id];
+  if (!c.audio) return;
+  c.audio.pause();
+  setCardState(id, 'paused');
+}
+
+function stopCard(id) {
+  const c = cards[id];
+  if (!c.audio) return;
+
+  // Fade out
+  const audio = c.audio;
+  const origVol = audio.volume;
+  let vol = origVol;
+  const fade = setInterval(() => {
+    vol = Math.max(0, vol - origVol / 10);
+    audio.volume = vol;
+    if (vol <= 0) {
+      clearInterval(fade);
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = origVol;
+      setCardState(id, 'idle');
+      logHistory(id);
+    }
+  }, 40);
+}
+
+function stopAll() {
+  Object.keys(cards).forEach(id => stopCard(parseInt(id)));
+}
+
+// ── SEEK ──
+let isSeeking = {};
+function seeking(id) { isSeeking[id] = true; }
+function seekTo(id) {
+  const c = cards[id];
+  if (!c.audio || !c.audio.duration) { isSeeking[id] = false; return; }
+  c.audio.currentTime = (parseFloat(document.getElementById(`seek-${id}`).value) / 100) * c.audio.duration;
+  isSeeking[id] = false;
+}
+
+function updateSeek(id) {
+  const c = cards[id];
+  if (!c.audio) return;
+  if (!isSeeking[id]) {
+    const pct = c.audio.duration ? (c.audio.currentTime / c.audio.duration) * 100 : 0;
+    document.getElementById(`seek-${id}`).value = pct;
+  }
+  document.getElementById(`time-${id}`).textContent = `${fmt(c.audio.currentTime)} / ${fmt(c.audio.duration || 0)}`;
+}
+
+function fmt(s) {
+  if (!isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+// ── VOLUME ──
+function setVol(id) {
+  const v = parseFloat(document.getElementById(`vol-${id}`).value);
+  cards[id].localVol = v;
+  document.getElementById(`vdisp-${id}`).textContent = Math.round(v * 100) + '%';
+  if (cards[id].audio) cards[id].audio.volume = v * masterVolume;
+}
+
+// ── LOOP ──
+function setLoop(id) {
+  if (cards[id].audio) cards[id].audio.loop = document.getElementById(`loop-${id}`).checked;
+}
+
+// ── CARD STATE ──
+function setCardState(id, state) {
+  const card = document.getElementById(`card-${id}`);
+  const badge = card.querySelector('.card-status');
+  card.classList.remove('playing','paused');
+  if (state === 'playing')  { card.classList.add('playing'); badge.textContent = '▶ Đang phát'; }
+  else if (state === 'paused') { card.classList.add('paused'); badge.textContent = '⏸ Tạm dừng'; }
+  else                        { badge.textContent = cards[id].fileName ? '⏹ Dừng' : 'Trống'; }
+}
+
+// ── HISTORY ──
+function logHistory(id, type) {
+  const name = document.getElementById(`card-${id}`).querySelector('.card-name').value;
+  const file = cards[id].fileName || '';
+  if (!file && type !== 'start') return;
+  if (type === 'start') return; // only log on stop/end
+
+  const list = getHistory();
+  list.unshift({ name, file, time: new Date().toLocaleTimeString('vi-VN') });
+  if (list.length > 50) list.pop();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  renderHistory();
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+
+function renderHistory() {
+  const ul = document.getElementById('history-list');
+  ul.innerHTML = '';
+  getHistory().forEach(h => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span><span class="h-name">${h.name}</span> — ${h.file}</span><span class="h-time">${h.time}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+function clearHistory() {
+  if (confirm('Xóa toàn bộ lịch sử phát nhạc?')) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  }
+}
+
+// ── KEYBOARD SHORTCUTS (1–9 → play/pause card) ──
+document.addEventListener('keydown', e => {
+  // ignore if typing in input
+  if (e.target.tagName === 'INPUT') return;
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= 9 && cards[n]) {
+    const card = document.getElementById(`card-${n}`);
+    if (card.classList.contains('playing')) pauseCard(n);
+    else playCard(n);
+  }
+});
+
+// ── INIT: create 12 cards ──
+for (let i = 0; i < 12; i++) addCard();
+renderHistory();
+</script>
+</body>
+</html>
