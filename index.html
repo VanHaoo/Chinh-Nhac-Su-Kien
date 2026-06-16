@@ -353,7 +353,31 @@
   <ul id="history-list"></ul>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <script>
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyD-sXUehkPxSP2_aTpOuluEcaY4udJZnOc",
+  authDomain: "dangoai.firebaseapp.com",
+  databaseURL: "https://dangoai-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dangoai",
+  storageBucket: "dangoai.firebasestorage.app",
+  messagingSenderId: "638214784405",
+  appId: "1:638214784405:web:5b945af3ae4112abd8629c",
+  measurementId: "G-M3MD58DYZZ"
+};
+
+let firebaseDB = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  firebaseDB = firebase.database();
+  console.log("Firebase connected");
+} catch (err) {
+  console.warn("Firebase chưa kết nối, tạm dùng localStorage", err);
+}
+
 // ── STATE ──
 let masterVolume = 1;
 let cardCount = 0;
@@ -557,14 +581,36 @@ function setCardState(id, state) {
 }
 
 // ── HISTORY ──
+// Lưu lịch sử lên Firebase khi bấm Play.
+// Nếu Firebase lỗi/chưa có mạng, web tự lưu tạm bằng localStorage.
 function logHistory(id, type) {
+  // Chỉ lưu lúc bấm Play, tránh bị ghi trùng khi Stop/End
+  if (type !== 'start') return;
+
   const name = document.getElementById(`card-${id}`).querySelector('.card-name').value;
   const file = cards[id].fileName || '';
-  if (!file && type !== 'start') return;
-  if (type === 'start') return; // only log on stop/end
+  if (!file) return;
 
+  const item = {
+    name,
+    file,
+    time: new Date().toLocaleTimeString('vi-VN'),
+    createdAt: Date.now()
+  };
+
+  if (firebaseDB) {
+    firebaseDB.ref('musicHistory').push(item).catch(err => {
+      console.warn('Không lưu được Firebase, chuyển sang localStorage', err);
+      saveHistoryLocal(item);
+    });
+  } else {
+    saveHistoryLocal(item);
+  }
+}
+
+function saveHistoryLocal(item) {
   const list = getHistory();
-  list.unshift({ name, file, time: new Date().toLocaleTimeString('vi-VN') });
+  list.unshift(item);
   if (list.length > 50) list.pop();
   localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
   renderHistory();
@@ -577,19 +623,66 @@ function getHistory() {
 
 function renderHistory() {
   const ul = document.getElementById('history-list');
+
+  // Có Firebase thì đọc lịch sử online
+  if (firebaseDB) {
+    firebaseDB.ref('musicHistory')
+      .orderByChild('createdAt')
+      .limitToLast(50)
+      .on('value', snapshot => {
+        ul.innerHTML = '';
+        const data = snapshot.val();
+        if (!data) return;
+
+        Object.values(data)
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+          .forEach(h => addHistoryItemToUI(h));
+      }, err => {
+        console.warn('Không đọc được Firebase, dùng localStorage', err);
+        renderLocalHistory();
+      });
+    return;
+  }
+
+  // Không có Firebase thì dùng localStorage
+  renderLocalHistory();
+}
+
+function renderLocalHistory() {
+  const ul = document.getElementById('history-list');
   ul.innerHTML = '';
-  getHistory().forEach(h => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span><span class="h-name">${h.name}</span> — ${h.file}</span><span class="h-time">${h.time}</span>`;
-    ul.appendChild(li);
-  });
+  getHistory().forEach(h => addHistoryItemToUI(h));
+}
+
+function addHistoryItemToUI(h) {
+  const ul = document.getElementById('history-list');
+  const li = document.createElement('li');
+  li.innerHTML = `<span><span class="h-name">${escapeHTML(h.name)}</span> — ${escapeHTML(h.file)}</span><span class="h-time">${escapeHTML(h.time)}</span>`;
+  ul.appendChild(li);
 }
 
 function clearHistory() {
-  if (confirm('Xóa toàn bộ lịch sử phát nhạc?')) {
+  if (!confirm('Xóa toàn bộ lịch sử phát nhạc?')) return;
+
+  if (firebaseDB) {
+    firebaseDB.ref('musicHistory').remove().catch(err => {
+      console.warn('Không xóa được Firebase, xóa localStorage', err);
+      localStorage.removeItem(HISTORY_KEY);
+      renderLocalHistory();
+    });
+  } else {
     localStorage.removeItem(HISTORY_KEY);
-    renderHistory();
+    renderLocalHistory();
   }
+}
+
+function escapeHTML(text) {
+  return String(text || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 // ── KEYBOARD SHORTCUTS (1–9 → play/pause card) ──
