@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Nhạc mở màn",
+    "file": "music/mo-man.mp3"
+  },
+  {
+    "name": "Nhạc trò chơi",
+    "file": "music/tro-choi.mp3"
+  },
+  {
+    "name": "Trao thưởng",
+    "file": "music/trao-thuong.mp3"
+  }
+]
