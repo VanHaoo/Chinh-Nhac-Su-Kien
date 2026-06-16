@@ -91,7 +91,7 @@
   /* ── GRID ── */
   .grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -106,6 +106,8 @@
     gap: 8px;
     transition: background .25s, border-color .25s;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
   }
   .card.playing {
     background: var(--card-playing);
@@ -311,8 +313,8 @@
   }
 
   /* ── RESPONSIVE ── */
-  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3,1fr); } }
-  @media (max-width: 780px)  { .grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+  @media (max-width: 780px)  { .grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   @media (max-width: 480px)  { .grid { grid-template-columns: 1fr; } }
 
   .shortcut-hint {
