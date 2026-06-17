@@ -32,7 +32,6 @@
     padding: 12px;
   }
 
-  /* ── HEADER ── */
   header {
     display: flex;
     align-items: center;
@@ -88,14 +87,12 @@
   .btn-neutral { background: var(--border); color: var(--text); }
   .btn-add     { background: #2255aa; color: #fff; }
 
-  /* ── GRID ── */
   .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
   }
 
-  /* ── CARD ── */
   .card {
     background: var(--card-idle);
     border: 2px solid var(--border);
@@ -118,7 +115,6 @@
     border-color: var(--yellow);
   }
 
-  /* status badge */
   .card-status {
     position: absolute;
     top: 10px;
@@ -134,12 +130,11 @@
   .card.paused   .card-status { background: var(--yellow); color: #000; }
   .card:not(.playing):not(.paused) .card-status { background: var(--border); color: var(--muted); }
 
-  /* card header row */
   .card-header {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding-right: 56px; /* room for badge */
+    padding-right: 56px;
   }
   .slot-num {
     font-size: .72rem;
@@ -164,7 +159,6 @@
   }
   .card-name:focus { border-bottom-color: var(--accent); }
 
-  /* file row */
   .file-row {
     display: flex;
     align-items: center;
@@ -172,21 +166,7 @@
     min-width: 0;
     overflow: hidden;
   }
-  .btn-file {
-    flex-shrink: 0;
-    min-width: fit-content;
-    height: 34px;
-    padding: 0 12px;
-    border-radius: 7px;
-    font-size: .8rem;
-    font-weight: 600;
-    background: #2255aa;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .btn-file:hover { filter: brightness(1.2); }
+
   .file-name {
     font-size: .75rem;
     color: var(--muted);
@@ -196,15 +176,12 @@
     flex: 1;
     min-width: 0;
   }
-  input[type=file] { display: none; }
 
-  /* transport buttons */
   .transport {
     display: flex;
     gap: 6px;
   }
-  .btn-play  { background: var(--green);  color: #000; flex: 1; font-size: 1rem; }
-  .btn-pause { background: var(--yellow); color: #000; flex: 1; font-size: 1rem; }
+  .btn-play  { background: var(--green);  color: #000; flex: 2; font-size: 1rem; }
   .btn-stop  { background: #cc3355; color: #fff; flex: 1; font-size: 1rem; }
   .transport .btn {
     height: 40px;
@@ -213,7 +190,6 @@
     font-weight: 700;
   }
 
-  /* seek / volume */
   .seek-row, .vol-row {
     display: flex;
     align-items: center;
@@ -232,7 +208,6 @@
 
   .vol-icon { font-size: .9rem; }
 
-  /* loop toggle */
   .loop-row {
     display: flex;
     align-items: center;
@@ -244,7 +219,6 @@
   .loop-row input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
   .loop-row span { font-size: .75rem; }
 
-  /* ── BOTTOM BAR ── */
   .bottom-bar {
     margin-top: 12px;
     background: var(--surface);
@@ -290,12 +264,10 @@
     display: block;
   }
 
-  /* scrollbar */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  /* ── RANGE STYLING ── */
   input[type=range] {
     -webkit-appearance: none;
     appearance: none;
@@ -312,7 +284,6 @@
     cursor: pointer;
   }
 
-  /* ── RESPONSIVE ── */
   @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
   @media (max-width: 780px)  { .grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   @media (max-width: 480px)  { .grid { grid-template-columns: 1fr; } }
@@ -323,11 +294,25 @@
     text-align: right;
     margin-top: 2px;
   }
+
+  .error-box {
+    background: #3d0a0a;
+    border: 1px solid #cc3355;
+    color: #fff;
+    padding: 12px;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  code {
+    white-space: pre-wrap;
+    color: #fff;
+  }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="header-title">🎵 <span>Bảng Điều Khiển</span> Nhạc Sự Kiện</div>
   <div class="header-controls">
@@ -337,14 +322,14 @@
       <span id="masterVolDisplay">100%</span>
     </div>
     <button class="btn btn-danger" onclick="stopAll()">⏹ Dừng Tất Cả</button>
-    <button class="btn btn-add" onclick="addCard()">＋ Thêm Ô</button>
+    <button class="btn btn-add" onclick="reloadSongs()">↻ Tải lại songs.json</button>
   </div>
 </header>
 
-<!-- GRID -->
+<div class="error-box" id="errorBox"></div>
+
 <div class="grid" id="grid"></div>
 
-<!-- HISTORY -->
 <div class="bottom-bar">
   <h3>
     📋 Lịch sử phát nhạc
@@ -353,74 +338,113 @@
   <ul id="history-list"></ul>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
 <script>
-// ── FIREBASE ──
-const firebaseConfig = {
-  apiKey: "AIzaSyD-sXUehkPxSP2_aTpOuluEcaY4udJZnOc",
-  authDomain: "dangoai.firebaseapp.com",
-  databaseURL: "https://dangoai-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dangoai",
-  storageBucket: "dangoai.firebasestorage.app",
-  messagingSenderId: "638214784405",
-  appId: "1:638214784405:web:5b945af3ae4112abd8629c",
-  measurementId: "G-M3MD58DYZZ"
-};
-
-let firebaseDB = null;
-try {
-  firebase.initializeApp(firebaseConfig);
-  firebaseDB = firebase.database();
-  console.log("Firebase connected");
-} catch (err) {
-  console.warn("Firebase chưa kết nối, tạm dùng localStorage", err);
-}
-
-// ── STATE ──
 let masterVolume = 1;
-let cardCount = 0;
-const cards = {};      // id → { audio, name, fileName }
+let songs = [];
+const cards = {};
 const HISTORY_KEY = 'event_music_history';
 
-// ── MASTER VOLUME ──
 const masterInput = document.getElementById('masterVol');
 const masterDisplay = document.getElementById('masterVolDisplay');
+
 masterInput.addEventListener('input', () => {
   masterVolume = parseFloat(masterInput.value);
   masterDisplay.textContent = Math.round(masterVolume * 100) + '%';
+
   Object.values(cards).forEach(c => {
     if (c.audio) c.audio.volume = c.localVol * masterVolume;
   });
 });
 
-// ── CREATE CARD ──
-function addCard() {
-  cardCount++;
-  const id = cardCount;
-  cards[id] = { audio: null, localVol: 0.8, fileName: null };
+async function loadSongsFromJson() {
+  const errorBox = document.getElementById('errorBox');
+  errorBox.style.display = 'none';
+  errorBox.textContent = '';
+
+  try {
+    const res = await fetch('songs.json?time=' + Date.now());
+
+    if (!res.ok) {
+      throw new Error('Không tìm thấy file songs.json');
+    }
+
+    songs = await res.json();
+
+    if (!Array.isArray(songs)) {
+      throw new Error('songs.json phải là dạng mảng []');
+    }
+
+    renderCardsFromSongs();
+    renderHistory();
+  } catch (err) {
+    document.getElementById('grid').innerHTML = '';
+    errorBox.style.display = 'block';
+    errorBox.innerHTML = `
+      <b>Lỗi đọc songs.json:</b> ${escapeHtml(err.message)}<br><br>
+      Nếu đang mở bằng file:// thì hãy mở bằng Live Server hoặc GitHub Pages.<br><br>
+      Ví dụ songs.json đúng:<br>
+      <code>[
+  {"name":"Nhạc mở màn","file":"music/mo-man.mp3"},
+  {"name":"Nhạc trò chơi","file":"music/tro-choi.mp3"}
+]</code>
+    `;
+  }
+}
+
+function reloadSongs() {
+  stopAll();
+  loadSongsFromJson();
+}
+
+function renderCardsFromSongs() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  Object.keys(cards).forEach(id => {
+    if (cards[id].audio) {
+      cards[id].audio.pause();
+      cards[id].audio.src = '';
+    }
+    delete cards[id];
+  });
+
+  songs.forEach((song, index) => {
+    addCard(song, index + 1);
+  });
+}
+
+function addCard(song, id) {
+  const audio = new Audio(song.file);
+
+  cards[id] = {
+    audio,
+    localVol: typeof song.volume === 'number' ? song.volume : 0.8,
+    fileName: song.file,
+    name: song.name || `Ô Nhạc ${id}`,
+    isSeeking: false
+  };
+
+  audio.volume = cards[id].localVol * masterVolume;
+  audio.loop = !!song.loop;
 
   const div = document.createElement('div');
   div.className = 'card';
   div.id = `card-${id}`;
+
   div.innerHTML = `
     <div class="card-header">
       <span class="slot-num">${id}</span>
-      <input class="card-name" type="text" value="Ô Nhạc ${id}" title="Nhấn để đổi tên" />
+      <input class="card-name" type="text" value="${escapeHtml(cards[id].name)}" title="Nhấn để đổi tên hiển thị" />
     </div>
-    <span class="card-status">Trống</span>
+    <span class="card-status">Sẵn sàng</span>
 
     <div class="file-row">
-      <button class="btn-file" onclick="chooseFile(${id})">📂 Chọn File</button>
-      <span class="file-name" id="fname-${id}">Chưa chọn file</span>
-      <input type="file" id="file-${id}" accept="audio/*" onchange="loadFile(${id})">
+      <span class="file-name" id="fname-${id}">${escapeHtml(song.file)}</span>
     </div>
 
     <div class="transport">
-      <button class="btn btn-play"  onclick="playCard(${id})"  title="Phát [phím ${id}]">▶</button>
-      <button class="btn btn-pause" onclick="pauseCard(${id})" title="Tạm dừng">⏸</button>
-      <button class="btn btn-stop"  onclick="stopCard(${id})"  title="Dừng">⏹</button>
+      <button class="btn btn-play" id="playPause-${id}" onclick="togglePlayPause(${id})" title="Play/Pause [phím ${id}]">▶</button>
+      <button class="btn btn-stop" onclick="stopCard(${id})" title="Dừng">⏹</button>
     </div>
 
     <div class="seek-row">
@@ -432,252 +456,255 @@ function addCard() {
 
     <div class="vol-row">
       <span class="vol-icon">🔉</span>
-      <input type="range" id="vol-${id}" min="0" max="1" step="0.01" value="0.8"
+      <input type="range" id="vol-${id}" min="0" max="1" step="0.01" value="${cards[id].localVol}"
              oninput="setVol(${id})">
-      <span id="vdisp-${id}">80%</span>
+      <span id="vdisp-${id}">${Math.round(cards[id].localVol * 100)}%</span>
     </div>
 
     <div class="loop-row">
       <label>
-        <input type="checkbox" id="loop-${id}" onchange="setLoop(${id})">
+        <input type="checkbox" id="loop-${id}" onchange="setLoop(${id})" ${audio.loop ? 'checked' : ''}>
         <span>🔁 Lặp lại</span>
       </label>
     </div>
     <div class="shortcut-hint">Phím tắt: ${id <= 9 ? id : '—'}</div>
   `;
+
   document.getElementById('grid').appendChild(div);
-}
 
-// ── LOAD FILE ──
-function chooseFile(id) {
-  document.getElementById(`file-${id}`).click();
-}
-
-function loadFile(id) {
-  const file = document.getElementById(`file-${id}`).files[0];
-  if (!file) return;
-
-  // cleanup old audio
-  if (cards[id].audio) {
-    cards[id].audio.pause();
-    cards[id].audio.src = '';
-  }
-
-  const url = URL.createObjectURL(file);
-  const audio = new Audio(url);
-  cards[id].audio = audio;
-  cards[id].fileName = file.name;
-
-  document.getElementById(`fname-${id}`).textContent = file.name;
-
-  const vol = cards[id].localVol;
-  audio.volume = vol * masterVolume;
-
-  // loop
-  audio.loop = document.getElementById(`loop-${id}`).checked;
-
-  // time update
   audio.addEventListener('timeupdate', () => updateSeek(id));
+  audio.addEventListener('loadedmetadata', () => updateSeek(id));
+  audio.addEventListener('play', () => {
+    setCardState(id, 'playing');
+    setPlayPauseIcon(id, 'pause');
+  });
+  audio.addEventListener('pause', () => {
+    if (audio.currentTime > 0 && audio.currentTime < audio.duration) {
+      setCardState(id, 'paused');
+      setPlayPauseIcon(id, 'play');
+    }
+  });
   audio.addEventListener('ended', () => {
     if (!audio.loop) {
       setCardState(id, 'idle');
-      logHistory(id);
+      setPlayPauseIcon(id, 'play');
     }
   });
-  audio.addEventListener('loadedmetadata', () => updateSeek(id));
-
-  setCardState(id, 'idle');
+  audio.addEventListener('error', () => {
+    setCardState(id, 'error');
+    setPlayPauseIcon(id, 'play');
+  });
 }
 
-// ── TRANSPORT ──
+function togglePlayPause(id) {
+  const c = cards[id];
+  if (!c || !c.audio) return;
+
+  if (c.audio.paused) {
+    playCard(id);
+  } else {
+    pauseCard(id);
+  }
+}
+
 function playCard(id) {
   const c = cards[id];
-  if (!c.audio) { alert('Hãy chọn file nhạc trước!'); return; }
-  c.audio.play();
-  setCardState(id, 'playing');
-  logHistory(id, 'start');
+  if (!c || !c.audio) return;
+
+  c.audio.volume = c.localVol * masterVolume;
+
+  c.audio.play()
+    .then(() => {
+      setCardState(id, 'playing');
+      setPlayPauseIcon(id, 'pause');
+      logHistory(id, 'start');
+    })
+    .catch(() => {
+      alert('Không phát được file. Kiểm tra lại đường dẫn trong songs.json hoặc tên file trong thư mục music/.');
+      setCardState(id, 'error');
+      setPlayPauseIcon(id, 'play');
+    });
 }
 
 function pauseCard(id) {
   const c = cards[id];
-  if (!c.audio) return;
+  if (!c || !c.audio) return;
+
   c.audio.pause();
   setCardState(id, 'paused');
+  setPlayPauseIcon(id, 'play');
 }
 
 function stopCard(id) {
   const c = cards[id];
-  if (!c.audio) return;
+  if (!c || !c.audio) return;
 
-  // Fade out
-  const audio = c.audio;
-  const origVol = audio.volume;
-  let vol = origVol;
-  const fade = setInterval(() => {
-    vol = Math.max(0, vol - origVol / 10);
-    audio.volume = vol;
-    if (vol <= 0) {
-      clearInterval(fade);
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = origVol;
-      setCardState(id, 'idle');
-      logHistory(id);
-    }
-  }, 40);
+  c.audio.pause();
+  c.audio.currentTime = 0;
+  setCardState(id, 'idle');
+  setPlayPauseIcon(id, 'play');
+
+  const seek = document.getElementById(`seek-${id}`);
+  if (seek) seek.value = 0;
+
+  const time = document.getElementById(`time-${id}`);
+  if (time) time.textContent = `0:00 / ${fmt(c.audio.duration || 0)}`;
 }
 
 function stopAll() {
   Object.keys(cards).forEach(id => stopCard(parseInt(id)));
 }
 
-// ── SEEK ──
-let isSeeking = {};
-function seeking(id) { isSeeking[id] = true; }
+function setPlayPauseIcon(id, mode) {
+  const btn = document.getElementById(`playPause-${id}`);
+  if (!btn) return;
+
+  btn.textContent = mode === 'pause' ? '⏸' : '▶';
+}
+
+function seeking(id) {
+  const c = cards[id];
+  if (!c || !c.audio || !c.audio.duration) return;
+
+  c.isSeeking = true;
+
+  const seek = document.getElementById(`seek-${id}`);
+  const time = document.getElementById(`time-${id}`);
+
+  const previewTime = (parseFloat(seek.value) / 100) * c.audio.duration;
+  time.textContent = `${fmt(previewTime)} / ${fmt(c.audio.duration)}`;
+}
+
 function seekTo(id) {
   const c = cards[id];
-  if (!c.audio || !c.audio.duration) { isSeeking[id] = false; return; }
-  c.audio.currentTime = (parseFloat(document.getElementById(`seek-${id}`).value) / 100) * c.audio.duration;
-  isSeeking[id] = false;
+  if (!c || !c.audio || !c.audio.duration) {
+    if (c) c.isSeeking = false;
+    return;
+  }
+
+  const seek = document.getElementById(`seek-${id}`);
+  c.audio.currentTime = (parseFloat(seek.value) / 100) * c.audio.duration;
+  c.isSeeking = false;
 }
 
 function updateSeek(id) {
   const c = cards[id];
-  if (!c.audio) return;
-  if (!isSeeking[id]) {
+  if (!c || !c.audio) return;
+
+  if (!c.isSeeking) {
     const pct = c.audio.duration ? (c.audio.currentTime / c.audio.duration) * 100 : 0;
-    document.getElementById(`seek-${id}`).value = pct;
+    const seek = document.getElementById(`seek-${id}`);
+    if (seek) seek.value = pct;
   }
-  document.getElementById(`time-${id}`).textContent = `${fmt(c.audio.currentTime)} / ${fmt(c.audio.duration || 0)}`;
+
+  const time = document.getElementById(`time-${id}`);
+  if (time) {
+    time.textContent = `${fmt(c.audio.currentTime)} / ${fmt(c.audio.duration || 0)}`;
+  }
 }
 
 function fmt(s) {
   if (!isFinite(s)) return '0:00';
-  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
   return `${m}:${sec.toString().padStart(2,'0')}`;
 }
 
-// ── VOLUME ──
 function setVol(id) {
+  const c = cards[id];
+  if (!c) return;
+
   const v = parseFloat(document.getElementById(`vol-${id}`).value);
-  cards[id].localVol = v;
+  c.localVol = v;
   document.getElementById(`vdisp-${id}`).textContent = Math.round(v * 100) + '%';
-  if (cards[id].audio) cards[id].audio.volume = v * masterVolume;
+
+  if (c.audio) c.audio.volume = v * masterVolume;
 }
 
-// ── LOOP ──
 function setLoop(id) {
-  if (cards[id].audio) cards[id].audio.loop = document.getElementById(`loop-${id}`).checked;
-}
-
-// ── CARD STATE ──
-function setCardState(id, state) {
-  const card = document.getElementById(`card-${id}`);
-  const badge = card.querySelector('.card-status');
-  card.classList.remove('playing','paused');
-  if (state === 'playing')  { card.classList.add('playing'); badge.textContent = '▶ Đang phát'; }
-  else if (state === 'paused') { card.classList.add('paused'); badge.textContent = '⏸ Tạm dừng'; }
-  else                        { badge.textContent = cards[id].fileName ? '⏹ Dừng' : 'Trống'; }
-}
-
-// ── HISTORY ──
-// Lưu lịch sử lên Firebase khi bấm Play.
-// Nếu Firebase lỗi/chưa có mạng, web tự lưu tạm bằng localStorage.
-function logHistory(id, type) {
-  // Chỉ lưu lúc bấm Play, tránh bị ghi trùng khi Stop/End
-  if (type !== 'start') return;
-
-  const name = document.getElementById(`card-${id}`).querySelector('.card-name').value;
-  const file = cards[id].fileName || '';
-  if (!file) return;
-
-  const item = {
-    name,
-    file,
-    time: new Date().toLocaleTimeString('vi-VN'),
-    createdAt: Date.now()
-  };
-
-  if (firebaseDB) {
-    firebaseDB.ref('musicHistory').push(item).catch(err => {
-      console.warn('Không lưu được Firebase, chuyển sang localStorage', err);
-      saveHistoryLocal(item);
-    });
-  } else {
-    saveHistoryLocal(item);
+  const c = cards[id];
+  if (c && c.audio) {
+    c.audio.loop = document.getElementById(`loop-${id}`).checked;
   }
 }
 
-function saveHistoryLocal(item) {
+function setCardState(id, state) {
+  const card = document.getElementById(`card-${id}`);
+  if (!card) return;
+
+  const badge = card.querySelector('.card-status');
+  card.classList.remove('playing','paused');
+
+  if (state === 'playing') {
+    card.classList.add('playing');
+    badge.textContent = '▶ Đang phát';
+  } else if (state === 'paused') {
+    card.classList.add('paused');
+    badge.textContent = '⏸ Tạm dừng';
+  } else if (state === 'error') {
+    badge.textContent = 'Lỗi file';
+  } else {
+    badge.textContent = '⏹ Dừng';
+  }
+}
+
+function logHistory(id, type) {
+  if (type !== 'start') return;
+
+  const card = document.getElementById(`card-${id}`);
+  const name = card.querySelector('.card-name').value;
+  const file = cards[id].fileName || '';
+
   const list = getHistory();
-  list.unshift(item);
+  list.unshift({
+    name,
+    file,
+    time: new Date().toLocaleTimeString('vi-VN')
+  });
+
   if (list.length > 50) list.pop();
+
   localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
   renderHistory();
 }
 
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-  catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch {
+    return [];
+  }
 }
 
 function renderHistory() {
   const ul = document.getElementById('history-list');
-
-  // Có Firebase thì đọc lịch sử online
-  if (firebaseDB) {
-    firebaseDB.ref('musicHistory')
-      .orderByChild('createdAt')
-      .limitToLast(50)
-      .on('value', snapshot => {
-        ul.innerHTML = '';
-        const data = snapshot.val();
-        if (!data) return;
-
-        Object.values(data)
-          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-          .forEach(h => addHistoryItemToUI(h));
-      }, err => {
-        console.warn('Không đọc được Firebase, dùng localStorage', err);
-        renderLocalHistory();
-      });
-    return;
-  }
-
-  // Không có Firebase thì dùng localStorage
-  renderLocalHistory();
-}
-
-function renderLocalHistory() {
-  const ul = document.getElementById('history-list');
   ul.innerHTML = '';
-  getHistory().forEach(h => addHistoryItemToUI(h));
-}
 
-function addHistoryItemToUI(h) {
-  const ul = document.getElementById('history-list');
-  const li = document.createElement('li');
-  li.innerHTML = `<span><span class="h-name">${escapeHTML(h.name)}</span> — ${escapeHTML(h.file)}</span><span class="h-time">${escapeHTML(h.time)}</span>`;
-  ul.appendChild(li);
+  getHistory().forEach(h => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span><span class="h-name">${escapeHtml(h.name)}</span> — ${escapeHtml(h.file)}</span><span class="h-time">${escapeHtml(h.time)}</span>`;
+    ul.appendChild(li);
+  });
 }
 
 function clearHistory() {
-  if (!confirm('Xóa toàn bộ lịch sử phát nhạc?')) return;
-
-  if (firebaseDB) {
-    firebaseDB.ref('musicHistory').remove().catch(err => {
-      console.warn('Không xóa được Firebase, xóa localStorage', err);
-      localStorage.removeItem(HISTORY_KEY);
-      renderLocalHistory();
-    });
-  } else {
+  if (confirm('Xóa toàn bộ lịch sử phát nhạc?')) {
     localStorage.removeItem(HISTORY_KEY);
-    renderLocalHistory();
+    renderHistory();
   }
 }
 
-function escapeHTML(text) {
-  return String(text || '')
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= 9 && cards[n]) {
+    togglePlayPause(n);
+  }
+});
+
+function escapeHtml(str) {
+  return String(str || '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -685,21 +712,7 @@ function escapeHTML(text) {
     .replaceAll("'", '&#039;');
 }
 
-// ── KEYBOARD SHORTCUTS (1–9 → play/pause card) ──
-document.addEventListener('keydown', e => {
-  // ignore if typing in input
-  if (e.target.tagName === 'INPUT') return;
-  const n = parseInt(e.key);
-  if (n >= 1 && n <= 9 && cards[n]) {
-    const card = document.getElementById(`card-${n}`);
-    if (card.classList.contains('playing')) pauseCard(n);
-    else playCard(n);
-  }
-});
-
-// ── INIT: create 12 cards ──
-for (let i = 0; i < 12; i++) addCard();
-renderHistory();
+loadSongsFromJson();
 </script>
 </body>
 </html>

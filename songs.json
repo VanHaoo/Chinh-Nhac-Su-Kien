@@ -1,14 +1,30 @@
 [
   {
-    "name": "Nhạc mở màn",
-    "file": "music/mo-man.mp3"
+    "name": "Bài Ca Tuổi Trẻ",
+    "file": "music/Bài Ca Tuổi Trẻ.mp3"
   },
   {
-    "name": "Nhạc trò chơi",
-    "file": "music/tro-choi.mp3"
+    "name": "Cứ Yêu Đi",
+    "file": "music/Cứ Yêu Đi.mp3"
   },
   {
-    "name": "Trao thưởng",
-    "file": "music/trao-thuong.mp3"
+    "name": "Gieomam",
+    "file": "music/Gieomam.mp3"
+  },
+  {
+    "name": "Nơi Này Có Anh",
+    "file": "music/Nơi Này Có Anh.mp3"
+  },
+  {
+    "name": "Theone",
+    "file": "music/Theone.mp3"
+  },
+  {
+    "name": "Việt Nam, Những Chuyến Đi (1)",
+    "file": "music/Việt Nam, Những Chuyến Đi (1).mp3"
+  },
+  {
+    "name": "Việt Nam, Đi, Hôn & Yêu",
+    "file": "music/Việt Nam, Đi, Hôn & Yêu.mp3"
   }
 ]
